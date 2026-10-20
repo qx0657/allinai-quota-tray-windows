@@ -258,6 +258,20 @@ internal static class CoreTests
                 await Task.WhenAll(first, second);
                 Expect(rig.Http.Count("auth/refresh") == 1, "Only one renewal in flight");
             }),
+            ("Cancelling one observer does not duplicate shared renewal", async () =>
+            {
+                using var rig = new Rig(expiredToken: true);
+                using var cancellation = new CancellationTokenSource();
+                var release = Gate();
+                rig.Http.Router = async (request, _, _) => { if (PathIs(request, "auth/refresh")) await release.Task; return rig.Normal(request); };
+                var cancelled = rig.Client.FetchAccountStatusAsync(cancellation.Token);
+                await UntilAsync(() => rig.Http.Count("auth/refresh") == 1);
+                cancellation.Cancel();
+                try { await cancelled; } catch (OperationCanceledException) { }
+                var remaining = rig.Client.FetchAccountStatusAsync();
+                release.SetResult(); await remaining;
+                Expect(rig.Http.Count("auth/refresh") == 1, "The session, not an individual observer, owns renewal");
+            }),
             ("An omitted rotated refresh token preserves the prior token", async () =>
             {
                 using var rig = new Rig(expiredToken: true);
@@ -306,6 +320,18 @@ internal static class CoreTests
                 release.SetResult();
                 try { await pending; } catch (OperationCanceledException) { }
                 Expect(!File.Exists(rig.Storage.TokenPath) && !rig.Credentials.Contains(Rig.Email), "Old session cannot restore deleted tokens");
+            }),
+            ("Logout rejects a delayed sign-in response", async () =>
+            {
+                using var rig = new Rig();
+                var release = Gate();
+                rig.Http.Router = async (request, _, _) => { if (PathIs(request, "auth/login")) await release.Task; return rig.Normal(request); };
+                var pending = rig.Client.SignInAsync("other@example.invalid", Guid.NewGuid().ToString("N"));
+                await UntilAsync(() => rig.Http.Count("auth/login") == 1);
+                rig.Client.Logout(); release.SetResult();
+                try { await pending; } catch (OperationCanceledException) { }
+                Expect(!File.Exists(rig.Storage.TokenPath) && !rig.Credentials.Contains("other@example.invalid"), "No credential persistence from a superseded sign-in");
+                Expect(rig.Storage.LoadConfig().Email == Rig.Email, "Late sign-in cannot change identity");
             }),
             ("Store logout discards late UI results and persists sign-out", async () =>
             {

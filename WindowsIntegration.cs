@@ -56,7 +56,7 @@ internal static class ProgressIcon
 
         if (progress.HasValue)
         {
-            using var pen = new Pen(color, 5.8f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            using var pen = new Pen(color, 3.2f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
             graphics.DrawArc(pen, rect, -90, (float)(Math.Clamp(progress.Value, 0, 1) * 360));
         }
         else

@@ -140,6 +140,7 @@ internal sealed class TrayApplication : ApplicationContext
         if (e.Mode == PowerModes.Suspend)
         {
             _sleeping = true;
+            _notices.Clear();
             _login?.Close();
             _store.Suspend();
             _updates.Stop();
