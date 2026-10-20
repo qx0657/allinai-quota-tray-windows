@@ -6,6 +6,8 @@
 
 macOS 版继续在独立仓库维护：[allinai-quota-menu](https://github.com/qx0657/allinai-quota-menu)。两端以相同业务规则为目标，系统集成保持原生。功能对应关系见[同步维护说明](docs/NATIVE_PARITY.md)。
 
+下载：[Windows v0.2.0](https://github.com/qx0657/allinai-quota-tray-windows/releases/tag/v0.2.0)（x64 自包含版，无需另装 .NET）。版本变化见[更新记录](CHANGELOG.md)。
+
 ## 功能
 
 - 只常驻系统托盘，左右键都能打开菜单；不创建常驻主窗口。
@@ -34,7 +36,13 @@ macOS 版继续在独立仓库维护：[allinai-quota-menu](https://github.com/q
 
 ![深色背景图标](docs/previews/icons-dark.png)
 
-## 构建和运行
+## 下载与安装
+
+从上述 Release 下载 `AllinAIQuotaTray-v0.2.0-win-x64.zip`，完整解压到固定位置，双击 `AllinAIQuotaTray.exe`。也可下载单独的同名 exe；正式版已包含 .NET 运行时。校验文件为 `SHA256SUMS.txt`，ZIP 内附安装说明。
+
+应用常驻系统托盘，图标可能在 `^` 溢出区。更新时先从旧进程菜单选择“退出”，再替换文件并启动；原有本地账号数据会保留。移动程序后重新开启“开机自启动”以更新路径。完整说明见 [INSTALL.txt](docs/INSTALL.txt)。
+
+## 从源码构建和运行
 
 开发需要 .NET 8 SDK。运行默认发布产物需要 **.NET 8 Windows Desktop Runtime**；可选择自包含发布。
 
@@ -148,7 +156,7 @@ dotnet run --project Tests/NativeSmoke.csproj -c Release -- publish/previews
 dotnet build allinai-quota-tray-windows.csproj -c Release -p:EnableWindowsTargeting=true
 ```
 
-CI 验证业务测试、原生编译、模拟数据视图、随机凭据往返、发布文件版本、启动和单实例。真实菜单操作、亮暗任务栏、高 DPI、通知投递与睡眠恢复仍应人工检查。历史 0.1.0 截图保存在 `docs/images/`，不代表当前界面。
+当前业务回归为 41 项。CI 验证业务测试、原生编译、模拟数据视图、随机凭据往返、发布文件版本、启动和单实例。真实菜单操作、亮暗任务栏、高 DPI、通知投递与睡眠恢复仍应人工检查。历史 0.1.0 截图保存在 `docs/images/`，不代表当前界面。
 
 ## 服务地址
 
@@ -158,6 +166,13 @@ CI 验证业务测试、原生编译、模拟数据视图、随机凭据往返�
 
 ## 版本与发布
 
-发布时同步更新项目中的 `Version`、`AssemblyVersion`、`FileVersion`、`InformationalVersion` 及本 README。先通过验证和发布脚本，再创建稳定 GitHub Release 并上传 Windows 产物。两个原生仓库分别发布，各自检查各自的 Release。
+发布时同步更新项目中的 `Version`、`AssemblyVersion`、`FileVersion`、`InformationalVersion` 及相关文档。先通过验证，再从匹配的版本标签手动运行自包含发布构建，核对 ZIP、exe 和 SHA-256 后发布 GitHub Release。常规推送的 CI 产物是框架依赖版；正式 Release 是自包含版。两个原生仓库分别发布，各自检查各自的 Release。具体命令见[发布指南](docs/RELEASING.md)。
+
+## 维护文档
+
+- [更新记录](CHANGELOG.md)
+- [发布指南](docs/RELEASING.md)
+- [原生版本同步维护](docs/NATIVE_PARITY.md)
+- [AGENTS.md](AGENTS.md) / [CLAUDE.md](CLAUDE.md)：标记区镜像的代理协作规则。
 
 初版由 OpenAI Codex 协助实现。项目继续保持原生、轻量、单账号工具的定位。

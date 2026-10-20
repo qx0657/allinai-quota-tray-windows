@@ -2,7 +2,7 @@
 
 2026-10-20：决定继续分别维护 macOS / Windows 原生仓库。Windows 0.2.0 的本轮行为基线是 macOS `79e417d`，不引入跨平台 UI 或共享运行库。
 
-macOS 仓库：https://github.com/qx0657/allinai-quota-menu
+macOS 仓库：[allinai-quota-menu](https://github.com/qx0657/allinai-quota-menu)，[对应维护说明](https://github.com/qx0657/allinai-quota-menu/blob/main/docs/NATIVE_PARITY.md)。Windows 侧功能同步完成于 `8c759ba`；上述提交标识为行为基线，不是后续发布提交。
 
 ## 功能对应
 
@@ -38,5 +38,7 @@ macOS 仓库：https://github.com/qx0657/allinai-quota-menu
 - 更新默认手动，自动检查每日一次，失败计入频率，冷却跨重启保留，更新不携带账户凭据。
 
 Windows 业务用例放在 `Tests/CoreTests.cs`；macOS 用例在其 `Tests/AllinAIQuotaTests.swift`。测试用同一类行为场景，各自直接调用生产逻辑，不另造两套“测试专用实现”。
+
+提交说明中记录另一平台是否需要同样修改；已同步时引用对方提交，平台差异说明原因。两端分别执行原生验证并按各自[发布指南](RELEASING.md)发布，不要求构建号或发布日期强制绑定。
 
 服务对缺失限额、周期窗口、订阅耗尽后扣费的正式约定仍有待确认。客户端继续明确表示未知，不以两端一致为理由自行决定后端语义。

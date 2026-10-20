@@ -74,5 +74,9 @@ Current version: 0.2.0. Update `Version`, `AssemblyVersion`, `FileVersion`, and 
 
 `build.ps1` publishes to a temporary directory and validates metadata before replacing `publish/win-x64/`. Keep failure-safe replacement. Default output is framework-dependent; `-SelfContained` is supported. Do not stop the user's running process to overwrite its exe; ask them to exit via the app when it blocks publishing.
 
-The current app is unsigned. Publish stable Windows artifacts to this repository's Release only when release publication is requested; source push alone is not a release. Ignore `bin/`, `obj/`, `publish/` and runtime data.
+Follow `docs/RELEASING.md` for tags, artifacts and publication. `.github/workflows/validate.yml` validates ordinary pushes using framework-dependent output; dispatch `releaseBuild=true` from a matching version tag to build the official self-contained x64 ZIP and SHA-256 file. The release workflow validates the exact published exe's metadata, startup and single-instance behavior before packaging. Do not distribute the ordinary CI build as the official self-contained release.
+
+Use `docs/INSTALL.txt` as the ZIP's README.txt and update `CHANGELOG.md` for user-visible changes. Verify the ZIP and exe hashes before uploading a draft, then publish and confirm the latest-release API. The current app is unsigned. Publish stable Windows artifacts to this repository's Release when requested; source push alone is not a release. Ignore `bin/`, `obj/`, `publish/` and runtime data.
+
+Keep the marked guidance in AGENTS.md and CLAUDE.md mirrored; edit one source and synchronize the other.
 <!-- agent-docs-sync:end -->

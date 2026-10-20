@@ -1,0 +1,17 @@
+AllinAI Quota for Windows
+
+支持 Windows 10/11 x64。正式发布包已包含 .NET 运行时，无需另装 SDK 或 Desktop Runtime。
+
+1. 将 ZIP 完整解压到一个固定、可写的位置。
+2. 双击 AllinAIQuotaTray.exe，点击系统托盘图标选择“登录…”。
+3. Windows 可能将图标放入 ^ 溢出区，可在任务栏设置中调整。
+
+更新：从旧版托盘菜单选择“退出”，再替换程序文件并启动。
+原有邮箱、偏好和会话继续使用当前用户的 AppData；密码保存在 Windows 凭据管理器。
+移动程序后，重新开启“开机自启动”，以更新启动路径。
+
+当前程序未进行数字签名，Windows SmartScreen 可能提示未知发布者。
+仅从本项目的 GitHub Releases 获取文件，并可用 SHA256SUMS.txt 核对下载。
+
+项目与反馈：https://github.com/qx0657/allinai-quota-tray-windows
+macOS 版本：https://github.com/qx0657/allinai-quota-menu

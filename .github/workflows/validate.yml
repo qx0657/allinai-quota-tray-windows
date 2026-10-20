@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      releaseBuild:
+        description: Build a self-contained release from a matching vX.Y.Z tag
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,12 +30,21 @@ jobs:
         run: dotnet run --project Tests/NativeSmoke.csproj -c Release -- publish/previews
       - name: Publish and verify metadata
         shell: pwsh
+        env:
+          RELEASE_BUILD: ${{ inputs.releaseBuild }}
+          BUILD_REF_TYPE: ${{ github.ref_type }}
+          BUILD_REF_NAME: ${{ github.ref_name }}
         run: |
+          $releaseBuild = $env:RELEASE_BUILD -eq 'true'
+          $expected = ([xml](Get-Content ./allinai-quota-tray-windows.csproj)).Project.PropertyGroup.Version
+          if ($releaseBuild -and ($env:BUILD_REF_TYPE -ne 'tag' -or $env:BUILD_REF_NAME -ne "v$expected")) {
+            throw "Release builds must run from the matching v$expected tag."
+          }
           $parseErrors = $null
           $parseTokens = $null
           [System.Management.Automation.Language.Parser]::ParseFile("$PWD/build.ps1", [ref]$parseTokens, [ref]$parseErrors) | Out-Null
           if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-          ./build.ps1
+          ./build.ps1 -SelfContained:$releaseBuild
           $info = (Get-Item ./publish/win-x64/AllinAIQuotaTray.exe).VersionInfo
           $expected = ([xml](Get-Content ./allinai-quota-tray-windows.csproj)).Project.PropertyGroup.Version
           if ($info.ProductVersion.Split('+')[0] -ne $expected) { throw "Unexpected product version: $($info.ProductVersion)" }
@@ -48,9 +62,31 @@ jobs:
           } finally {
             if (-not $app.HasExited) { Stop-Process -Id $app.Id }
           }
+      - name: Create release ZIP and checksums
+        if: inputs.releaseBuild
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content ./allinai-quota-tray-windows.csproj)).Project.PropertyGroup.Version
+          $stage = New-Item -ItemType Directory -Path ./publish/release-stage -Force
+          $output = New-Item -ItemType Directory -Path ./publish/release -Force
+          Copy-Item ./publish/win-x64/AllinAIQuotaTray.exe $stage
+          Copy-Item ./docs/INSTALL.txt (Join-Path $stage 'README.txt')
+          $archive = Join-Path $output "AllinAIQuotaTray-v$version-win-x64.zip"
+          Compress-Archive -Path "$stage/*" -DestinationPath $archive
+          $exeHash = (Get-FileHash ./publish/win-x64/AllinAIQuotaTray.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $zipHash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sums = "$exeHash  AllinAIQuotaTray.exe`n$zipHash  $([IO.Path]::GetFileName($archive))`n"
+          [IO.File]::WriteAllText((Join-Path $output 'SHA256SUMS.txt'), $sums, [Text.UTF8Encoding]::new($false))
+          Remove-Item $stage -Recurse -Force
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && !inputs.releaseBuild
         with:
           name: windows-build-and-previews
           path: publish/
           if-no-files-found: ignore
+      - uses: actions/upload-artifact@v7
+        if: inputs.releaseBuild && success()
+        with:
+          name: windows-release
+          path: publish/release/
+          if-no-files-found: error
