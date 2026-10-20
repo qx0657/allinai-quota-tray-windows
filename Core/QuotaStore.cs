@@ -94,7 +94,8 @@ internal sealed class QuotaStore(AllinClient client, PreferenceStore preferences
             preferences.Value.ExplicitlySignedOut = false;
             preferences.Save();
             Changed?.Invoke();
-            await RefreshAsync();
+            // Authentication finishes independently of quota loading, so the login form can close promptly.
+            _ = RefreshAsync();
         }
         finally { Schedule(); Changed?.Invoke(); }
     }

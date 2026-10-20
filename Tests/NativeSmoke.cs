@@ -43,7 +43,8 @@ internal static class NativeSmoke
             Console.WriteLine("PASS native summary and icon: " + state.Key);
             form.Close();
         }
-        using (var login = new LoginForm("fixture@example.invalid", (_, _, _) => Task.CompletedTask))
+        var rejection = string.Concat(Enumerable.Repeat("服务暂不可用，请稍后重试。", 12));
+        using (var login = new LoginForm("fixture@example.invalid", (_, _, _) => Task.FromException(new ClientError(FailureKind.Rejected, rejection))))
         {
             login.StartPosition = FormStartPosition.Manual;
             login.Location = new Point(-20000, -20000);
@@ -54,6 +55,18 @@ internal static class NativeSmoke
             bitmap.Save(Path.Combine(directory, "login.png"), ImageFormat.Png);
             if (login.ShowInTaskbar || login.AcceptButton is null || login.CancelButton is null) throw new Exception("Login window contract changed");
             Console.WriteLine("PASS native login form");
+            Descendants(login).OfType<TextBox>().Single(t => t.UseSystemPasswordChar).Text = Guid.NewGuid().ToString("N");
+            ((Button)login.AcceptButton).PerformClick();
+            Application.DoEvents(); login.PerformLayout();
+            foreach (var control in Descendants(login).Where(c => c is Button || c is Label label && label.Text == rejection))
+            {
+                var bottom = login.PointToClient(control.PointToScreen(new Point(0, control.Height))).Y;
+                if (bottom > login.ClientSize.Height) throw new Exception("Long login error clipped the error or action buttons");
+            }
+            using var errorBitmap = new Bitmap(login.ClientSize.Width, login.ClientSize.Height);
+            login.Controls[0].DrawToBitmap(errorBitmap, new Rectangle(Point.Empty, login.ClientSize));
+            errorBitmap.Save(Path.Combine(directory, "login-error.png"), ImageFormat.Png);
+            Console.WriteLine("PASS inline long login errors keep actions visible");
             login.Close();
         }
         var account = "allinai-smoke-" + Guid.NewGuid().ToString("N") + "@example.invalid";
@@ -90,5 +103,14 @@ internal static class NativeSmoke
         for (var y = 0; y < bitmap.Height; y++)
             for (var x = 0; x < bitmap.Width; x++) colors.Add(bitmap.GetPixel(x, y).ToArgb());
         if (colors.Count < 10) throw new Exception("Native preview is empty; child controls were not rendered");
+    }
+
+    private static IEnumerable<Control> Descendants(Control root)
+    {
+        foreach (Control child in root.Controls)
+        {
+            yield return child;
+            foreach (var descendant in Descendants(child)) yield return descendant;
+        }
     }
 }

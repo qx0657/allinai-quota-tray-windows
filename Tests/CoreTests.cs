@@ -210,6 +210,22 @@ internal static class CoreTests
                 Expect(rig.Storage.LoadConfig().Email == Rig.Email && rig.Credentials.Get(Rig.Email) == saved, "Reject before persistence");
                 Expect(!rig.Credentials.Contains("other@example.invalid"), "Do not save unverified credentials");
             }),
+            ("Verified sign-in does not wait for slow quota resources", async () =>
+            {
+                using var rig = new Rig();
+                var release = Gate();
+                rig.Http.Router = async (request, _, _) =>
+                {
+                    if (!PathIs(request, "auth/login")) await release.Task;
+                    return rig.Normal(request);
+                };
+                var signIn = rig.Store.SignInAsync("other@example.invalid", Guid.NewGuid().ToString("N"));
+                var returned = await Task.WhenAny(signIn, Task.Delay(500));
+                var prompt = ReferenceEquals(returned, signIn);
+                release.SetResult(); await signIn;
+                await UntilAsync(() => !rig.Store.IsRefreshing);
+                Expect(prompt && rig.Store.Config.Email == "other@example.invalid", "Close the verified login while fetching quota in the background");
+            }),
             ("Service and forbidden failures never trigger password login", async () =>
             {
                 foreach (var status in new[] { 503, 403 })

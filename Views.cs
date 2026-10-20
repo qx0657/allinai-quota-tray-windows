@@ -110,7 +110,11 @@ internal sealed class LoginForm : Form
         MaximizeBox = MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(390, 290);
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(20), ColumnCount = 1, RowCount = 8 };
+        MinimumSize = SizeFromClientSize(new Size(390, 230));
+        AutoSize = true;
+        AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(20), ColumnCount = 1, RowCount = 8 };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         layout.Controls.Add(new Label { Text = "邮箱", AutoSize = true });
         _email.Text = email;

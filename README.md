@@ -20,6 +20,20 @@ macOS 版继续在独立仓库维护：[allinai-quota-menu](https://github.com/q
 - 密码保存在 Windows 凭据管理器，验证登录成功后才保存；支持重新登录和退出登录。
 - 当前用户开机自启动、单实例运行、版本显示与 GitHub 检查更新。
 
+## 原生界面预览
+
+以下由 Windows CI 使用生产 `SummaryPanel` 和图标代码、**模拟数据**生成。它们是菜单内的只读概览，不包含完整操作菜单，也不代表通知和任务栏交互已完成人工验收。
+
+| 订阅模式 | 余额模式 |
+| --- | --- |
+| ![订阅额度概览](docs/previews/subscription.png) | ![余额消费概览](docs/previews/balance.png) |
+
+亮暗背景上的托盘图标（满额度、低额度、余额、耗尽、未知、未登录）：
+
+![浅色背景图标](docs/previews/icons-light.png)
+
+![深色背景图标](docs/previews/icons-dark.png)
+
 ## 构建和运行
 
 开发需要 .NET 8 SDK。运行默认发布产物需要 **.NET 8 Windows Desktop Runtime**；可选择自包含发布。
