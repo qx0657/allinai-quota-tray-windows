@@ -2,175 +2,77 @@
 
 Guidance for Codex or other AI/code agents working in this project.
 
+<!-- agent-docs-sync:start -->
 ## Scope
 
-This repository contains a lightweight native Windows tray app for AllinAI quota status. The implementation intentionally avoids Electron or a package-heavy desktop stack. It is a WinForms app targeting `.NET 8` and `net8.0-windows`.
+A lightweight native Windows tray app using C# / WinForms, .NET 8, and `net8.0-windows`. Keep the native direction and small dependency footprint. The macOS app remains in its own repository.
 
-The source is currently concentrated in one file:
-
-```text
-Program.cs
-```
-
-Keep changes focused and conservative unless the user asks for a larger refactor.
-
-## Important Paths
-
-- Source: `Program.cs`
-- Project/version metadata: `allinai-quota-tray-windows.csproj`
-- Manifest: `app.manifest`
-- Publish script: `build.ps1`
-- Publish output: `publish/win-x64/AllinAIQuotaTray.exe`
-- Runtime config/token directory: `%APPDATA%\AllinAIQuotaTray\`
-- Credential Manager target prefix: `local.allinai.quota.tray.windows`
-- Startup registry value: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\AllinAIQuotaTray`
+Before changing quota rules, authentication, refresh scheduling, reminders or update checks, read `docs/NATIVE_PARITY.md` for the corresponding macOS behavior and intentional platform differences. Change Windows code directly; do not introduce a cross-platform runtime to synchronize the repositories.
 
 ## Code Map
 
-- `Program`: app entry point.
-- `TrayApplication`: `ApplicationContext` owner for the tray icon, menu, timer, refresh flow, tooltip text, and app shutdown.
-- `AllinClient`: config files, token cache, auth/login/refresh, subscription API, profile API.
-- `LoginForm`: small modal WinForms login dialog.
-- `ProgressIcon`: dynamic tray icon renderer. It draws a high-contrast icon that remains visible on both dark and light taskbars.
-- `StartupManager`: current-user startup toggle through the Windows `Run` registry key.
-- `AppInfo`: reads assembly informational version for the tray menu.
-- `CredentialVault`: Windows Credential Manager P/Invoke wrapper.
-- `TimeZoneNames`: small Windows-timezone-to-IANA mapping for the API query.
-- Model classes: config, tokens, API envelope, login response, user profile, subscription, group, quota metric, fetch state.
+- `Program.cs`: tray/menu owner, lifecycle, power/network events, notification queue.
+- `Views.cs`: read-only summary, remaining-quota bar, asynchronous login form.
+- `WindowsIntegration.cs`: dynamic icons, Credential Manager, per-user startup, assembly version.
+- `Core/Models.cs`: models, error classification, quota policy, presentation projection.
+- `Core/Client.cs`: config/token/preferences storage, account session, HTTP, IANA timezone conversion.
+- `Core/QuotaStore.cs`: refresh state, cancellation, cooldown/backoff, reminder rules and deduplication.
+- `Core/Updates.cs`: stable-release version comparison and independent GitHub checks.
+- `Tests/CoreTests.cs`: behavioral regressions without network or real credentials.
+- `Tests/NativeSmoke.cs`: production WinForms rendering and temporary test-credential round trip.
 
-## Service/API Rules
+Keep disk and credential access outside menu rendering. Platform-independent logic belongs in `Core/` so its actual implementation can run in tests on macOS as well as Windows.
 
-Preserve these URLs unless the backend has really changed:
+## Behavior
 
-```text
-https://allincode.top/api/v1
-https://allincode.top/subscriptions
+- Stay tray-only; both mouse buttons open the menu. Login and long-description windows are temporary.
+- Use Chinese menu labels, `开机自启动`, and `版本：v<version>` near the bottom.
+- Ring and progress bar mean remaining quota. Select the most constrained known cycle; missing usage is not zero or unlimited.
+- Preserve independent subscription/profile snapshots and last successful timestamps on failure.
+- Only authentication failures trigger session recovery. Share in-flight token renewal; late work cannot restore a logged-out session.
+- All refresh entry points honor Retry-After. Pause while sleeping and merge wake/network recovery.
+- Reminders and automatic updates default off. Seed existing reminder conditions quietly and deduplicate notices.
+- Preserve the black/white icon outline for both taskbar appearances. Keep tooltip truncation (63 UTF-16 units without splitting surrogate pairs).
+- Windows controls tray overflow visibility; the app cannot force visibility or add a macOS-style text title beside the icon.
+
+## Service and Storage
+
+Keep the real addresses `https://allincode.top/api/v1` and `https://allincode.top/subscriptions`. Endpoints are POST `/auth/login`, POST `/auth/refresh`, GET `/subscriptions?timezone=<IANA-zone>`, GET `/user/profile`, wrapped in `{ code, message, data }`.
+
+- Runtime directory: `%APPDATA%\AllinAIQuotaTray\`.
+- `config.json`: email and refresh interval only; separate preferences go in `preferences.json`.
+- Passwords: Windows Credential Manager, target `local.allinai.quota.tray.windows:<email>`, UTF-16 blob. Preserve compatibility.
+- `tokens.json`: local sensitive runtime data; never commit, log or put tokens/passwords in examples or fixtures.
+- Test credentials must be generated at runtime and isolated from real accounts.
+- Keep atomic file writes and legacy data compatibility. Preserve explicit sign-out across restarts.
+- Startup stays under the current user's `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\AllinAIQuotaTray`; no administrator privileges.
+- Update checks use this repository's GitHub Release independently of AllinAI cookies, password and tokens. Stable tags are `v<major>.<minor>.<patch>`; preserve daily opt-in scheduling and persisted GitHub cooldown.
+
+## Validation
+
+After changing business logic:
+
+```sh
+dotnet run --project Tests/CoreTests.csproj -c Release
 ```
 
-Used endpoints:
-
-```text
-POST /auth/login
-POST /auth/refresh
-GET  /subscriptions?timezone=<local-timezone>
-GET  /user/profile
-```
-
-The app expects API responses wrapped in:
-
-```text
-{ code, message, data }
-```
-
-## Security And Storage
-
-- Do not store passwords in source, `config.json`, `tokens.json`, logs, README examples, or test fixtures.
-- Passwords belong in Windows Credential Manager through `CredentialVault`.
-- `tokens.json` may contain access/refresh tokens and must remain local runtime data only.
-- `config.json` stores email and refresh interval only.
-- Startup is per-user and should not require administrator privileges.
-
-## UI/UX Rules
-
-- Keep the app tray-only. Do not introduce a main window unless explicitly requested.
-- Left-click and right-click should both open the tray menu.
-- Keep tray tooltip text short. `NotifyIcon.Text` has a small Windows length limit; this project truncates tooltip text to avoid runtime errors.
-- The app cannot reliably force Windows to show the tray icon outside the `^` overflow area. Do not promise that behavior.
-- The icon should remain visible on dark and light taskbars. Preserve the black/white high-contrast outline unless replacing it with an equally robust design.
-- Keep Chinese user-facing menu labels consistent with the current app.
-
-## Versioning
-
-Current version: `0.1.0`
-
-Release version metadata lives in `allinai-quota-tray-windows.csproj`:
-
-```xml
-<Version>0.1.0</Version>
-<AssemblyVersion>0.1.0.0</AssemblyVersion>
-<FileVersion>0.1.0.0</FileVersion>
-<InformationalVersion>0.1.0</InformationalVersion>
-```
-
-When bumping versions, update all four fields together and keep the tray menu version sourced from assembly metadata.
-
-## Build And Validation
-
-Build:
+On Windows, also run:
 
 ```powershell
-dotnet build -c Release
-```
-
-Publish:
-
-```powershell
+dotnet build allinai-quota-tray-windows.csproj -c Release --warnaserror
+dotnet run --project Tests/NativeSmoke.csproj -c Release -- publish/previews
 .\build.ps1
 ```
 
-Verify published version metadata:
+On macOS/Linux, cross-compilation is possible with `-p:EnableWindowsTargeting=true`; Windows UI, Credential Manager, notifications, startup and publish scripts still require Windows validation. The GitHub workflow covers native compilation/rendering, temporary credentials, published metadata, process startup and single-instance behavior. A green workflow is not a manual taskbar, high-DPI, notification or sleep/wake acceptance test.
 
-```powershell
-(Get-Item .\publish\win-x64\AllinAIQuotaTray.exe).VersionInfo |
-  Select-Object ProductName,ProductVersion,FileVersion,CompanyName
-```
+The native smoke test deletes its random test credential; it never touches a real account's credential or startup setting. Keep that property when extending it.
 
-Smoke test:
+## Version and Publishing
 
-```powershell
-$p = Start-Process .\publish\win-x64\AllinAIQuotaTray.exe -PassThru
-Start-Sleep -Seconds 2
-if ($p.HasExited) { throw "App exited early: $($p.ExitCode)" }
-```
+Current version: 0.2.0. Update `Version`, `AssemblyVersion`, `FileVersion`, and `InformationalVersion` in the project together. The menu reads assembly metadata, strips build metadata, and must not carry a separate hardcoded version.
 
-Before publishing over an existing exe, stop the running process:
+`build.ps1` publishes to a temporary directory and validates metadata before replacing `publish/win-x64/`. Keep failure-safe replacement. Default output is framework-dependent; `-SelfContained` is supported. Do not stop the user's running process to overwrite its exe; ask them to exit via the app when it blocks publishing.
 
-```powershell
-Get-Process AllinAIQuotaTray -ErrorAction SilentlyContinue | Stop-Process -Force
-```
-
-## Common Tasks
-
-### Change Refresh Intervals
-
-Update the interval list in `TrayApplication.RefreshIntervalMenu()`. Keep values reasonable; this app should stay lightweight and avoid aggressive polling.
-
-### Change Tooltip Content
-
-Update `TrayApplication.UpdateTooltip()`, `LoadedTooltip()`, or `BalanceTooltip()`. Preserve `TrimTooltip()` or another guard for Windows tooltip length.
-
-### Change Icon Appearance
-
-Update `ProgressIcon.Make()`. Verify both states:
-
-- `progress == null`: idle/loading/error dot-style state.
-- `progress.HasValue`: quota progress ring.
-
-Keep the icon readable at small tray sizes. Windows may downscale the icon.
-
-### Change Startup Behavior
-
-Update `StartupManager`. Keep startup under the current user's `Run` key unless the user explicitly asks for a machine-wide installer/service behavior.
-
-### Add Packaging
-
-Prefer extending `build.ps1` or adding a separate packaging script. Keep publish artifacts under `publish/` or another clearly ignored output directory.
-
-## Git/Generated Files
-
-Ignored generated paths:
-
-```text
-bin/
-obj/
-publish/
-```
-
-Do not commit runtime data from `%APPDATA%\AllinAIQuotaTray`.
-
-## Known Constraints
-
-- The app is unsigned; Windows SmartScreen may warn when sharing the executable.
-- The app currently publishes framework-dependent by default. Users need the .NET 8 Windows Desktop Runtime unless publishing self-contained.
-- Tray icon visibility outside the Windows overflow menu is controlled by Windows/user settings.
-- Timezone conversion uses a small hand-maintained Windows-to-IANA map, with fallback to `TimeZoneInfo.Local.Id`.
+The current app is unsigned. Publish stable Windows artifacts to this repository's Release only when release publication is requested; source push alone is not a release. Ignore `bin/`, `obj/`, `publish/` and runtime data.
+<!-- agent-docs-sync:end -->

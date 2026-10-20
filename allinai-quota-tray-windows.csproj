@@ -5,10 +5,10 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <RootNamespace>AllinAIQuotaTray</RootNamespace>
     <AssemblyName>AllinAIQuotaTray</AssemblyName>
-    <Version>0.1.0</Version>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <FileVersion>0.1.0.0</FileVersion>
-    <InformationalVersion>0.1.0</InformationalVersion>
+    <Version>0.2.0</Version>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <FileVersion>0.2.0.0</FileVersion>
+    <InformationalVersion>0.2.0</InformationalVersion>
     <Product>AllinAI Quota Tray</Product>
     <Company>AllinAI</Company>
     <Description>Lightweight Windows tray app for viewing AllinAI subscription quota.</Description>
@@ -18,5 +18,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Tests/**/*.cs" />
+  </ItemGroup>
 
 </Project>
