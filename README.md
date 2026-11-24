@@ -8,6 +8,8 @@ macOS 版继续在独立仓库维护：[allinai-quota-menu](https://github.com/q
 
 下载：[Windows v0.2.0](https://github.com/qx0657/allinai-quota-tray-windows/releases/tag/v0.2.0)（x64 自包含版，无需另装 .NET）。版本变化见[更新记录](CHANGELOG.md)。
 
+公司 GitLab 上的 `huguangbang/allinai-quota-tray-windows` 是本仓库的内部镜像，`main` 与版本标签保持同一历史，只供内网查阅。正式安装包和客户端检查更新仍只走 GitHub Release。不要把更新地址改到镜像，也不要和 macOS 仓库合并。
+
 ## 功能
 
 - 只常驻系统托盘，左右键都能打开菜单；不创建常驻主窗口。

@@ -48,3 +48,14 @@ gh release edit v0.2.0 --repo qx0657/allinai-quota-tray-windows --draft=false --
 最后确认 `releases/latest` 返回本版本、不是草稿或预发布、附件均已上传，再按 GitHub 返回的 digest 核对本地 SHA-256。只创建 Git 标签、只推源码或只上传 Actions artifact 都不会成为应用可发现的正式更新。
 
 CI 不会读取真实账号，也不代表用户已验收任务栏操作、通知送达、自启动、睡眠恢复、高 DPI。实际系统行为的验证范围应随 Release 如实说明。
+
+## 公司 GitLab 镜像
+
+`origin` 保持 GitHub。公司 GitLab 项目 `huguangbang/allinai-quota-tray-windows` 使用 remote 名 `gitlab`，只镜像 `main` 和版本标签，不上传安装包，也不作为客户端更新源。GitHub Release 发布完成后追加：
+
+```sh
+git push gitlab main
+git push gitlab v0.2.0
+```
+
+不要 force push，不要移动已发布标签。macOS 仓单独推自己的 `gitlab` remote。
